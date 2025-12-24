@@ -1,0 +1,113 @@
+--- AutoJudge Experiment Log ---
+
+PHASE 1: DATA INGESTION & EDA
+Loading dataset from data/problem_data.jsonl...
+Data loaded. Rows: 4112
+
+Missing Values per Column:
+title                 0
+description           0
+input_description     0
+output_description    0
+sample_io             0
+problem_class         0
+problem_score         0
+url                   0
+dtype: int64
+Filled missing scores with Median: 5.2
+
+Dataset Shape: (4112, 8)
+Columns: ['title', 'description', 'input_description', 'output_description', 'sample_io', 'problem_class', 'problem_score', 'url']
+
+Problem Class Distribution:
+problem_class
+hard      1941
+medium    1405
+easy       766
+Name: count, dtype: int64
+
+Problem Score Statistics:
+Mean: 5.11
+Median: 5.20
+Std Dev: 2.18
+Min: 1.10
+Max: 9.70
+Saved plot: reports/1_class_distribution.png
+Saved plot: reports/1b_score_distribution.png
+
+PHASE 2: FEATURE ENGINEERING
+Engineered Features: text_len, math_symbols, keyword_freq, word_count, avg_word_len, number_count
+
+Feature Statistics by Difficulty Class:
+
+text_len:
+                count         mean         std    min     25%     50%     75%     max
+problem_class                                                                        
+easy            766.0  1289.954308  606.673458   10.0   860.0  1221.5  1638.0  4084.0
+hard           1941.0  1761.594024  771.656806  217.0  1227.0  1637.0  2157.0  7003.0
+medium         1405.0  1619.276157  752.535871  133.0  1109.0  1496.0  1991.0  7582.0
+
+math_symbols:
+                count       mean        std  min   25%   50%   75%    max
+problem_class                                                            
+easy            766.0  24.194517  22.004159  0.0   9.0  18.0  33.0  162.0
+hard           1941.0  38.808861  31.387305  0.0  17.0  30.0  51.0  234.0
+medium         1405.0  34.320285  29.462515  0.0  14.0  27.0  45.0  227.0
+
+keyword_freq:
+                count      mean       std  min  25%  50%  75%   max
+problem_class                                                      
+easy            766.0  0.390339  1.510005  0.0  0.0  0.0  0.0  14.0
+hard           1941.0  1.018547  2.832009  0.0  0.0  0.0  1.0  29.0
+medium         1405.0  0.790036  2.478836  0.0  0.0  0.0  0.0  25.0
+
+word_count:
+                count        mean         std   min    25%    50%    75%     max
+problem_class                                                                   
+easy            766.0  217.143603  100.733767   1.0  146.0  206.5  275.0   671.0
+hard           1941.0  296.022154  128.060335  38.0  208.0  278.0  363.0  1055.0
+medium         1405.0  271.855516  123.637675  24.0  188.0  254.0  334.0  1226.0
+
+avg_word_len:
+                count      mean       std       min       25%       50%       75%       max
+problem_class                                                                              
+easy            766.0  4.579834  0.320760  3.666667  4.380830  4.551440  4.754535  7.000000
+hard           1941.0  4.557937  0.259094  3.608787  4.375870  4.549763  4.722222  5.605634
+medium         1405.0  4.560446  0.284773  3.246964  4.387755  4.548098  4.710843  8.775641
+
+number_count:
+                count       mean        std  min  25%  50%   75%    max
+problem_class                                                          
+easy            766.0   8.759791   9.256250  0.0  3.0  6.0  11.0  102.0
+hard           1941.0  11.944359  11.866048  0.0  5.0  9.0  15.0  118.0
+medium         1405.0  11.748043  12.448264  0.0  5.0  8.0  14.0  183.0
+Saved plot: reports/2_feature_correlation.png
+Saved plot: reports/2b_correlation_heatmap.png
+Saved plot: reports/2c_all_features_by_class.png
+Generating TF-IDF Vectors...
+
+Train Set Size: 3289
+Test Set Size: 823
+Feature Dimensions: 3006
+
+PHASE 3: MODEL BATTLE
+Classifier: Logistic Regression | Accuracy: 53.22%
+Classifier: Random Forest | Accuracy: 55.04%
+Classifier: SVM (Linear) | Accuracy: 51.64%
+
+Best Classifier: RandomForestClassifier with Accuracy: 55.04%
+Regressor: Linear Regression | MAE: 2.70 | RMSE: 3.37
+Regressor: Random Forest | MAE: 1.68 | RMSE: 2.02
+Regressor: Gradient Boosting | MAE: 1.70 | RMSE: 2.04
+
+Best Regressor: RandomForestRegressor with MAE: 1.68
+
+PHASE 4: SAVING MODELS
+
+Saved Models:
+- classifier_model.pkl
+- regressor_model.pkl
+- tfidf_vectorizer.pkl
+- feature_metadata.json
+
+Process Complete. Check 'reports/' folder for proofs.
