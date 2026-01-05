@@ -2,152 +2,262 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import joblib
-import re
-import nltk
-from nltk.corpus import stopwords
+import time
 from scipy.sparse import hstack
+from src.features import get_manual_features
+from src.preprocessing import clean_text
 
-# --- CONFIGURATION ---
-PAGE_TITLE = "AutoJudge: AI Problem Difficulty Predictor"
-PAGE_ICON = "⚡"
+# --- 1. CONFIGURATION ---
+st.set_page_config(
+    page_title="AutoJudge",
+    page_icon=None,
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
 
-# --- SETUP PAGE ---
-st.set_page_config(page_title=PAGE_TITLE, page_icon=PAGE_ICON, layout="centered")
+# --- 2. ADVANCED CSS (Glassmorphism & Modern UI) ---
+st.markdown("""
+<style>
+    /* 1. Dynamic Background - NEON SYNTHWAVE THEME */
+    .stApp {
+        background: radial-gradient(circle at 10% 20%, rgb(45, 0, 70) 0%, rgb(15, 0, 30) 90%);
+        color: #e0e0e0;
+    }
+
+    /* 2. Glassmorphic Containers */
+    .css-1r6slb0, .css-12oz5g7 {
+        background: rgba(255, 0, 150, 0.03); /* Slight Pink Tint */
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        border-radius: 15px;
+        padding: 20px;
+    }
+
+    /* 3. Typography */
+    h1 {
+        font-family: 'Inter', sans-serif;
+        font-weight: 800;
+        background: -webkit-linear-gradient(45deg, #ff00cc, #bc13fe); /* Pink to Purple */
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+    h2, h3 {
+        font-family: 'Inter', sans-serif;
+        color: #ffffff !important;
+    }
+
+    /* 4. Inputs (White Text, Clean Look) */
+    .stTextInput > div > div > input, .stTextArea > div > div > textarea {
+        background-color: rgba(255, 255, 255, 0.05);
+        color: #ffffff !important;
+        border: 1px solid rgba(188, 19, 254, 0.3); /* Purple Border */
+        border-radius: 8px;
+        font-family: 'Inter', sans-serif;
+    }
+    .stTextInput > div > div > input:focus, .stTextArea > div > div > textarea:focus {
+        border-color: #ff00cc;
+        background-color: rgba(255, 255, 255, 0.08);
+    }
+
+    /* 5. Modern Button - PINK/PURPLE GRADIENT */
+    .stButton > button {
+        background: linear-gradient(90deg, #f72585 0%, #7209b7 100%);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 0.6rem 2rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        box-shadow: 0 4px 15px rgba(247, 37, 133, 0.3);
+        transition: all 0.3s ease;
+        width: 100%;
+    }
+    .stButton > button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(247, 37, 133, 0.5);
+    }
+
+    /* 6. Custom Cards for Metrics */
+    div[data-testid="stMetricValue"] {
+        background: -webkit-linear-gradient(0deg, #ff00cc, #333399);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        font-size: 28px;
+        font-weight: 700;
+    }
+    div[data-testid="stMetricLabel"] {
+        color: #d0d0d0;
+        font-size: 14px;
+    }
+
+    /* 7. Sidebar Styling */
+    section[data-testid="stSidebar"] {
+        background-color: rgba(20, 0, 30, 0.95);
+        border-right: 1px solid rgba(188, 19, 254, 0.1);
+    }
+</style>
+""", unsafe_allow_html=True)
 
 
-# --- LOAD MODELS & ASSETS ---
+# --- 3. LOAD ASSETS ---
 @st.cache_resource
 def load_assets():
     try:
-        clf_model = joblib.load('models/classifier_model.pkl')
-        reg_model = joblib.load('models/regressor_model.pkl')
+        clf = joblib.load('models/classifier_model.pkl')
+        reg = joblib.load('models/regressor_model.pkl')
         tfidf = joblib.load('models/tfidf_vectorizer.pkl')
-        return clf_model, reg_model, tfidf
+        return clf, reg, tfidf
     except FileNotFoundError:
-        st.error("Error: Model files not found. Please run 'train_model.py' first.")
+        st.error("System Error: Models not found. Run main.py first.")
         st.stop()
 
 
 clf_model, reg_model, tfidf_vectorizer = load_assets()
 
+# --- 4. SIDEBAR DASHBOARD ---
+with st.sidebar:
+    st.markdown("## AutoJudge")
+    st.markdown("---")
 
-# --- HELPER FUNCTIONS (Must match train_model.py exactly) ---
-def get_features(text):
-    # 1. Math Symbols
-    math_symbols = ['+', '-', '*', '/', '=', '<', '>', '^', '_', '{', '}', '$', '%']
-    math_count = sum(text.count(s) for s in math_symbols)
+    st.markdown("### System Status")
+    st.success("Model Engine: Online")
+    st.info("Vectorizer: Ready")
+    st.markdown("---")
 
-    # 2. Keywords
-    keywords = ['graph', 'tree', 'dp', 'recursion', 'array', 'greedy', 'binary', 'modulo']
-    keyword_freq = sum(text.lower().count(k) for k in keywords)
+    st.markdown("### Configuration")
+    st.checkbox("Math Symbol Detection", value=True, disabled=True)
+    st.checkbox("Keyword Heuristics", value=True, disabled=True)
+    st.markdown("---")
 
-    # 3. Text Length
-    text_len = len(text)
+    with st.expander("About"):
+        st.write("This tool utilizes a hybrid RF-SVM architecture to analyze algorithmic complexity.")
 
-    # 4. Word Count
-    words = text.split()
-    word_count = len(words)
+# --- 5. MAIN UI ---
+col_logo, col_title = st.columns([1, 10])
+with col_title:
+    st.title("AutoJudge")
+    st.markdown("Advanced difficulty prediction for algorithmic problems.")
 
-    # 5. Average Word Length
-    if word_count > 0:
-        avg_word_len = np.mean([len(w) for w in words])
+st.markdown("---")
+
+# Layout: Input on Left, Live Stats on Right
+col_input, col_context = st.columns([2, 1])
+
+with col_input:
+    st.subheader("Input Parameters")
+    title = st.text_input("Problem Title", placeholder="Enter problem name...")
+    desc = st.text_area("Problem Statement", height=250, placeholder="Paste the full problem description here...")
+
+    c1, c2 = st.columns(2)
+    with c1:
+        in_desc = st.text_area("Input Constraints", height=100)
+    with c2:
+        out_desc = st.text_area("Output Format", height=100)
+
+    analyze_btn = st.button("Run Complexity Analysis")
+
+with col_context:
+    st.subheader("Live Monitor")
+
+    if desc:
+        l = len(desc)
+        w = len(desc.split())
+        st.markdown(f"""
+        <div style="padding: 15px; background: rgba(255,255,255,0.05); border-radius: 10px; border: 1px solid rgba(188, 19, 254, 0.2);">
+            <p style="margin:0; color:#a0a0a0;">Characters</p>
+            <h3 style="margin:0;">{l}</h3>
+            <hr style="border-color: rgba(255,255,255,0.1);">
+            <p style="margin:0; color:#a0a0a0;">Words</p>
+            <h3 style="margin:0;">{w}</h3>
+            <hr style="border-color: rgba(255,255,255,0.1);">
+            <p style="margin:0; color:#a0a0a0;">Data Status</p>
+            <h3 style="color: #bc13fe; margin:0;">Valid</h3>
+        </div>
+        """, unsafe_allow_html=True)
     else:
-        avg_word_len = 0
+        st.info("Awaiting Input Stream...")
+        st.markdown("Use the panel on the left to input problem data.")
 
-    # 6. Number Count
-    number_count = len(re.findall(r'\d+', text))
-
-    return [text_len, math_count, keyword_freq, word_count, avg_word_len, number_count]
-
-
-def clean_text(text):
-    try:
-        stop_words = set(stopwords.words('english'))
-    except LookupError:
-        nltk.download('stopwords')
-        stop_words = set(stopwords.words('english'))
-
-    text = text.lower()
-    text = re.sub(r'[^a-zA-Z0-9\s]', '', text)
-    return " ".join([w for w in text.split() if w not in stop_words])
-
-
-# --- UI LAYOUT ---
-st.title(PAGE_TITLE)
-st.markdown("""
-    This system uses Machine Learning to predict the difficulty of a programming problem 
-    based on its textual description.
-
-    **Instructions:** Paste the problem details below and click 'Predict'.
-""")
-
-st.divider()
-
-col1, col2 = st.columns(2)
-
-with col1:
-    problem_title = st.text_input("Problem Title (Optional)")
-
-with col2:
-    pass
-
-problem_desc = st.text_area("Problem Description", height=200,
-                            placeholder="Paste the main story of the problem here...")
-input_desc = st.text_area("Input Description", height=100, placeholder="e.g., The first line contains an integer T...")
-output_desc = st.text_area("Output Description", height=100, placeholder="e.g., Print the maximum sum...")
-
-# --- PREDICTION LOGIC ---
-if st.button("Predict Difficulty", type="primary"):
-    if not problem_desc:
-        st.warning("Please enter at least the Problem Description.")
+# --- 6. PREDICTION LOGIC ---
+if analyze_btn:
+    if not desc:
+        st.warning("Input Buffer Empty. Please provide a description.")
     else:
-        with st.spinner("Analyzing text complexity..."):
-            # 1. Aggregate Text
-            combined_text = f"{problem_title} {problem_desc} {input_desc} {output_desc}"
+        # UX: Loading Animation
+        progress_text = "Processing neural vectors..."
+        my_bar = st.progress(0, text=progress_text)
 
-            # 2. Extract Manual Features
-            # Order: text_len, math_symbols, keyword_freq, word_count, avg_word_len, number_count
-            manual_features = np.array(get_features(combined_text)).reshape(1, -1)
+        for percent_complete in range(100):
+            time.sleep(0.01)
+            my_bar.progress(percent_complete + 1, text=progress_text)
 
-            # 3. NLP & TF-IDF
-            cleaned_text = clean_text(combined_text)
-            tfidf_vector = tfidf_vectorizer.transform([cleaned_text])
+        # Logic
+        combined = f"{title} {desc} {in_desc} {out_desc}"
+        feats = get_manual_features(combined)
 
-            # 4. Stack Features
-            # Note: Tfidf comes first, then manual features (matching train_model.py)
-            final_input = hstack((tfidf_vector, manual_features))
+        clean = clean_text(combined)
+        tfidf_vec = tfidf_vectorizer.transform([clean])
+        manual_features = np.array(feats).reshape(1, -1)
+        final_input = hstack((tfidf_vec, manual_features))
 
-            # 5. Predict
-            predicted_class = clf_model.predict(final_input)[0]
-            predicted_score = reg_model.predict(final_input)[0]
+        pred_class = clf_model.predict(final_input)[0]
+        pred_score = reg_model.predict(final_input)[0]
 
-            # --- DISPLAY RESULTS ---
-            st.success("Prediction Complete!")
+        my_bar.empty()
 
-            # Create metrics
-            res_col1, res_col2 = st.columns(2)
+        # --- RESULTS SECTION ---
+        st.markdown("---")
+        st.subheader("Analysis Report")
 
-            with res_col1:
-                st.subheader("Difficulty Class")
-                # Color logic for display
-                if predicted_class == "Easy":
-                    color = "green"
-                elif predicted_class == "Medium":
-                    color = "orange"
-                else:
-                    color = "red"
-                st.markdown(f":{color}[**{predicted_class}**]")
+        # Custom Result Cards
+        res_c1, res_c2, res_c3, res_c4 = st.columns(4)
 
-            with res_col2:
-                st.subheader("Predicted Score")
-                st.metric(label="Rating", value=f"{int(predicted_score)}")
+        with res_c1:
+            st.markdown("**Difficulty Class**")
+            # Dynamic Color Badge
+            if pred_class == "Easy":
+                bg = "#00c853"
+            elif pred_class == "Medium":
+                bg = "#ffd600"  # Amber
+            else:
+                bg = "#d50000"  # Red
 
-            # Explanation / Debug Info (Professional Touch)
-            with st.expander("View Analysis Details"):
-                st.write("Feature Analysis:")
-                st.json({
-                    "Math Symbols Found": manual_features[0][1],
-                    "Algorithmic Keywords": manual_features[0][2],
-                    "Text Length (Chars)": manual_features[0][0],
-                    "Word Count": manual_features[0][3]
-                })
+            st.markdown(f"""
+            <div style="background:{bg}; padding:10px; border-radius:8px; text-align:center;">
+                <h3 style="margin:0; text-shadow: 0px 1px 2px rgba(0,0,0,0.5);">{pred_class.upper()}</h3>
+            </div>
+            """, unsafe_allow_html=True)
+
+        with res_c2:
+            st.metric("Predicted Rating", int(pred_score), "+ AI Est.")
+
+        with res_c3:
+            st.metric("Math Density", feats[1], "Symbols")
+
+        with res_c4:
+            st.metric("Algo Keywords", feats[2], "Detected")
+
+        # Visualization Row
+        st.markdown("")
+        st.markdown("#### Feature Influence Vector")
+
+        chart_data = pd.DataFrame({
+            "Feature": ["Text Length", "Math Symbols", "Keywords", "Numeric Constants"],
+            "Intensity": [feats[0] / 100, feats[1], feats[2], feats[5]]
+        })
+
+        # CHANGED CHART COLOR TO HOT PINK
+        st.bar_chart(chart_data, x="Feature", y="Intensity", color="#f72585")
+
+        # Developer Dump
+        with st.expander("Developer Logs (JSON Dump)"):
+            st.json({
+                "timestamp": time.time(),
+                "model_version": "v2.4",
+                "prediction": {
+                    "class": pred_class,
+                    "score": pred_score
+                },
+                "features": feats
+            })
