@@ -18,15 +18,15 @@ st.set_page_config(
 # --- 2. ADVANCED CSS (Glassmorphism & Modern UI) ---
 st.markdown("""
 <style>
-    /* 1. Dynamic Background - NEON SYNTHWAVE THEME */
+    /* 1. Dynamic Background */
     .stApp {
-        background: radial-gradient(circle at 10% 20%, rgb(45, 0, 70) 0%, rgb(15, 0, 30) 90%);
+        background: radial-gradient(circle at 10% 20%, rgb(16, 20, 40) 0%, rgb(5, 5, 10) 90%);
         color: #e0e0e0;
     }
 
     /* 2. Glassmorphic Containers */
     .css-1r6slb0, .css-12oz5g7 {
-        background: rgba(255, 0, 150, 0.03); /* Slight Pink Tint */
+        background: rgba(255, 255, 255, 0.03);
         backdrop-filter: blur(10px);
         border: 1px solid rgba(255, 255, 255, 0.05);
         border-radius: 15px;
@@ -37,7 +37,7 @@ st.markdown("""
     h1 {
         font-family: 'Inter', sans-serif;
         font-weight: 800;
-        background: -webkit-linear-gradient(45deg, #ff00cc, #bc13fe); /* Pink to Purple */
+        background: -webkit-linear-gradient(45deg, #00d2ff, #3a7bd5);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
     }
@@ -50,51 +50,51 @@ st.markdown("""
     .stTextInput > div > div > input, .stTextArea > div > div > textarea {
         background-color: rgba(255, 255, 255, 0.05);
         color: #ffffff !important;
-        border: 1px solid rgba(188, 19, 254, 0.3); /* Purple Border */
+        border: 1px solid rgba(255, 255, 255, 0.1);
         border-radius: 8px;
         font-family: 'Inter', sans-serif;
     }
     .stTextInput > div > div > input:focus, .stTextArea > div > div > textarea:focus {
-        border-color: #ff00cc;
+        border-color: #3a7bd5;
         background-color: rgba(255, 255, 255, 0.08);
     }
 
-    /* 5. Modern Button - PINK/PURPLE GRADIENT */
+    /* 5. Modern Button */
     .stButton > button {
-        background: linear-gradient(90deg, #f72585 0%, #7209b7 100%);
+        background: linear-gradient(90deg, #00d2ff 0%, #3a7bd5 100%);
         color: white;
         border: none;
         border-radius: 8px;
         padding: 0.6rem 2rem;
-        font-weight: 700;
+        font-weight: 600;
         text-transform: uppercase;
         letter-spacing: 1px;
-        box-shadow: 0 4px 15px rgba(247, 37, 133, 0.3);
+        box-shadow: 0 4px 15px rgba(0, 210, 255, 0.3);
         transition: all 0.3s ease;
         width: 100%;
     }
     .stButton > button:hover {
         transform: translateY(-2px);
-        box-shadow: 0 6px 20px rgba(247, 37, 133, 0.5);
+        box-shadow: 0 6px 20px rgba(0, 210, 255, 0.5);
     }
 
     /* 6. Custom Cards for Metrics */
     div[data-testid="stMetricValue"] {
-        background: -webkit-linear-gradient(0deg, #ff00cc, #333399);
+        background: -webkit-linear-gradient(0deg, #00d2ff, #928DAB);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
         font-size: 28px;
         font-weight: 700;
     }
     div[data-testid="stMetricLabel"] {
-        color: #d0d0d0;
+        color: #a0a0a0;
         font-size: 14px;
     }
 
     /* 7. Sidebar Styling */
     section[data-testid="stSidebar"] {
-        background-color: rgba(20, 0, 30, 0.95);
-        border-right: 1px solid rgba(188, 19, 254, 0.1);
+        background-color: rgba(10, 12, 20, 0.95);
+        border-right: 1px solid rgba(255, 255, 255, 0.05);
     }
 </style>
 """, unsafe_allow_html=True)
@@ -164,7 +164,7 @@ with col_context:
         l = len(desc)
         w = len(desc.split())
         st.markdown(f"""
-        <div style="padding: 15px; background: rgba(255,255,255,0.05); border-radius: 10px; border: 1px solid rgba(188, 19, 254, 0.2);">
+        <div style="padding: 15px; background: rgba(255,255,255,0.05); border-radius: 10px; border: 1px solid rgba(255,255,255,0.1);">
             <p style="margin:0; color:#a0a0a0;">Characters</p>
             <h3 style="margin:0;">{l}</h3>
             <hr style="border-color: rgba(255,255,255,0.1);">
@@ -172,7 +172,7 @@ with col_context:
             <h3 style="margin:0;">{w}</h3>
             <hr style="border-color: rgba(255,255,255,0.1);">
             <p style="margin:0; color:#a0a0a0;">Data Status</p>
-            <h3 style="color: #bc13fe; margin:0;">Valid</h3>
+            <h3 style="color: #00d2ff; margin:0;">Valid</h3>
         </div>
         """, unsafe_allow_html=True)
     else:
@@ -215,17 +215,23 @@ if analyze_btn:
 
         with res_c1:
             st.markdown("**Difficulty Class**")
-            # Dynamic Color Badge
-            if pred_class == "Easy":
-                bg = "#00c853"
-            elif pred_class == "Medium":
-                bg = "#ffd600"  # Amber
+
+            # --- FIX: ROBUST LOWERCASE CHECK ---
+            p_class = str(pred_class).lower().strip()
+
+            if p_class == "easy":
+                bg = "#00c853"  # Green
+                label_color = "#ffffff"
+            elif p_class == "medium":
+                bg = "#ffab00"  # Amber/Orange
+                label_color = "#000000"
             else:
                 bg = "#d50000"  # Red
+                label_color = "#ffffff"
 
             st.markdown(f"""
             <div style="background:{bg}; padding:10px; border-radius:8px; text-align:center;">
-                <h3 style="margin:0; text-shadow: 0px 1px 2px rgba(0,0,0,0.5);">{pred_class.upper()}</h3>
+                <h3 style="margin:0; color:{label_color}; text-shadow: 0px 1px 2px rgba(0,0,0,0.3);">{pred_class.upper()}</h3>
             </div>
             """, unsafe_allow_html=True)
 
@@ -247,8 +253,7 @@ if analyze_btn:
             "Intensity": [feats[0] / 100, feats[1], feats[2], feats[5]]
         })
 
-        # CHANGED CHART COLOR TO HOT PINK
-        st.bar_chart(chart_data, x="Feature", y="Intensity", color="#f72585")
+        st.bar_chart(chart_data, x="Feature", y="Intensity", color="#3a7bd5")
 
         # Developer Dump
         with st.expander("Developer Logs (JSON Dump)"):
@@ -261,4 +266,3 @@ if analyze_btn:
                 },
                 "features": feats
             })
-
