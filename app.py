@@ -266,5 +266,3 @@ if analyze_btn:
                 },
                 "features": feats
             })
-
-app.py me ye daalkr update krdena
